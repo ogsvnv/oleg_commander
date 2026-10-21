@@ -23,7 +23,7 @@ class SecureFilesystem:
     """Operate on paths beneath allowlisted roots without following symlinks."""
 
     def __init__(self, roots: list[Path], max_bytes: int):
-        self.roots = sorted((Path(root).resolve() for root in roots), key=lambda p: -len(p.parts))
+        self.roots = sorted((Path(root).absolute() for root in roots), key=lambda p: -len(p.parts))
         self.max_bytes = max_bytes
 
     def _locate(self, path: str) -> tuple[Path, tuple[str, ...], Path]:
