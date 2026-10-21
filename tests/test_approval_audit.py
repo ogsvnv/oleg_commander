@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import stat
 from pathlib import Path
 
@@ -16,8 +15,8 @@ from oleg_commander.services.approval_service import (
     ApprovalService,
     invocation_digest,
 )
-from oleg_commander.tools.filesystem import FilesystemTool
 from oleg_commander.tool_result import ToolResult
+from oleg_commander.tools.filesystem import FilesystemTool
 
 
 class CaptureMCP:
@@ -223,7 +222,6 @@ def test_approved_context_is_reset_if_tool_errors(tmp_path, isolated_home, monke
     # A separate app registers the patched implementation with the same request
     # digest, so this is a new approval; test exception-safe reset directly.
     security = app.security_manager
-    with pytest.raises(RuntimeError):
-        with security.authorized_write():
-            raise RuntimeError("boom")
+    with pytest.raises(RuntimeError), security.authorized_write():
+        raise RuntimeError("boom")
     assert not security.can_modify()
