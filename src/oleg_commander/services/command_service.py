@@ -3,7 +3,7 @@
 import asyncio
 from collections.abc import Sequence
 
-from ..tools.base import ToolResult
+from ..tool_result import ToolResult
 
 
 class OutputLimitError(Exception):
