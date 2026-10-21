@@ -19,7 +19,7 @@ def main() -> None:
     start = subparsers.add_parser("start", help="Run the MCP server")
     start.add_argument(
         "--transport",
-        choices=("stdio", "http", "streamable-http"),
+        choices=("stdio", "http", "streamable-http", "https"),
         help="Override the configured MCP transport",
     )
     subparsers.add_parser("doctor", help="Show installed runtime settings")
@@ -75,7 +75,7 @@ def main() -> None:
             )
     else:
         print("Implemented: MCP, SSH, filesystem, Git and allowlisted diagnostics")
-        print("Process termination, remote HTTP auth and advanced approval UI pending")
+        print("Process termination, OAuth and advanced approval UI pending")
 
 
 if __name__ == "__main__":

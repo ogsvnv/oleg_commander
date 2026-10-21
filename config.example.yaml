@@ -3,6 +3,11 @@ server:
   transport: stdio
   host: 127.0.0.1
   port: 8765
+  # HTTPS only (optional): set transport: https, public_host and TLS files.
+  # Keep the bearer token ONLY in OLEG_COMMANDER_BEARER_TOKEN env.
+  # public_host: commander.example.org
+  # tls_certfile: /etc/ssl/certs/commander.pem
+  # tls_keyfile: /home/ogsvnv/.config/oleg-commander/key.pem
 
 security:
   read_only: true
