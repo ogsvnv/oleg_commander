@@ -14,8 +14,8 @@ class DockerTool:
         try:
             # In a real implementation we would use docker ps
             return ToolResult(
-                success=True,
-                data={"message": "Docker container listing not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "docker operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -28,8 +28,8 @@ class DockerTool:
         try:
             # In a real implementation we would use docker logs
             return ToolResult(
-                success=True,
-                data={"message": f"Docker logs for {container} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "docker operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -42,8 +42,8 @@ class DockerTool:
         try:
             # In a real implementation we would use docker inspect
             return ToolResult(
-                success=True,
-                data={"message": f"Docker inspect for {container} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "docker operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -54,7 +54,7 @@ class DockerTool:
     async def docker_restart(self, container: str) -> ToolResult:
         """Restart a Docker container."""
         try:
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -62,8 +62,8 @@ class DockerTool:
                 
             # In a real implementation we would use docker restart
             return ToolResult(
-                success=True,
-                data={"message": f"Docker restart for {container} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "docker operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
