@@ -188,8 +188,6 @@ class OlegCommanderServer:
         
         # Terminal tools
         self._add_tool(terminal_tool.execute_command, name="terminal.execute_command", description="Execute a command in the terminal")
-        self._add_tool(terminal_tool.start_process, name="terminal.start_process", description="Start a process")
-        self._add_tool(terminal_tool.terminate_process, name="terminal.terminate_process", description="Terminate a process")
         
         # SSH tools
         self._add_tool(ssh_tool.ssh_list_hosts, name="ssh.list_hosts", description="List allowed SSH hosts")
@@ -210,13 +208,10 @@ class OlegCommanderServer:
         self._add_tool(git_tool.git_create_branch, name="git.create_branch", description="Create a new Git branch")
         self._add_tool(git_tool.git_add, name="git.add", description="Add files to Git staging area")
         self._add_tool(git_tool.git_commit, name="git.commit", description="Commit staged files")
-        self._add_tool(git_tool.git_pull, name="git.pull", description="Pull changes from remote origin")
-        self._add_tool(git_tool.git_push, name="git.push", description="Push changes to remote origin")
         
         # Process tools
         self._add_tool(process_tool.list_processes, name="process.list", description="List running processes")
         self._add_tool(process_tool.get_process_info, name="process.info", description="Get information about a process")
-        self._add_tool(process_tool.kill_process, name="process.kill", description="Kill a running process")
         
         # Systemd tools
         self._add_tool(systemd_tool.systemd_status, name="systemd.status", description="Get status of a systemd service")
