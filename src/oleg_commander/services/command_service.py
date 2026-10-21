@@ -1,7 +1,6 @@
 """Bounded subprocess execution for local read-only and admin tools."""
 
 import asyncio
-import os
 from collections.abc import Sequence
 
 from ..tool_result import ToolResult
