@@ -148,7 +148,7 @@ class FilesystemTool:
         try:
             if self.security_manager.is_path_allowed(path):
                 # This is only allowed in read-write mode
-                if self.security_manager.config.security.read_only:
+                if not self.security_manager.can_modify():
                     return ToolResult(
                         success=False,
                         error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -181,7 +181,7 @@ class FilesystemTool:
         try:
             if self.security_manager.is_path_allowed(path):
                 # This is only allowed in read-write mode
-                if self.security_manager.config.security.read_only:
+                if not self.security_manager.can_modify():
                     return ToolResult(
                         success=False,
                         error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -352,7 +352,7 @@ class FilesystemTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -385,7 +385,7 @@ class FilesystemTool:
                     error={"code": "FORBIDDEN", "message": "Access to destination path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -429,7 +429,7 @@ class FilesystemTool:
                     error={"code": "FORBIDDEN", "message": "Access to destination path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -468,7 +468,7 @@ class FilesystemTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -493,26 +493,3 @@ class FilesystemTool:
                 error={"code": "UNKNOWN_ERROR", "message": str(e)}
             )
 
-# Define a base class for tool results
-class ToolResult:
-    """Standardized result format for MCP tools."""
-    
-    def __init__(self, success: bool, data: Optional[Dict[str, Any]] = None, 
-                 error: Optional[Dict[str, str]] = None):
-        self.success = success
-        self.data = data
-        self.error = error
-        
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert result to dictionary format."""
-        return {
-            "success": self.success,
-            "data": self.data,
-            "error": self.error
-        }
-        
-    def __repr__(self):
-        if self.success:
-            return f"ToolResult(success=True, data={self.data})"
-        else:
-            return f"ToolResult(success=False, error={self.error})"
