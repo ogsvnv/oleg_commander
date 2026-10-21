@@ -130,4 +130,4 @@ def test_git_pull_is_mutating_even_in_read_only_mode(tmp_path):
     tool = GitTool(make_security(allowed_directories=[str(tmp_path)]))
     result = asyncio.run(tool.git_pull(str(tmp_path)))
     assert not result.success
-    assert result.error["code"] == "FORBIDDEN"
+    assert result.error["code"] == "READ_ONLY"
