@@ -25,6 +25,8 @@ class SecurityConfig(BaseModel):
     allowed_directories: list[str] = Field(default_factory=list)
     allowed_ssh_hosts: list[str] = Field(default_factory=list)
     allowed_ssh_directories: dict[str, list[str]] = Field(default_factory=dict)
+    allowed_systemd_services: list[str] = Field(default_factory=list)
+    allowed_docker_containers: list[str] = Field(default_factory=list)
 
 
 class ExecutionConfig(BaseModel):

@@ -16,7 +16,17 @@ jobs:
       - name: Install package and test dependencies
         run: python -m pip install -e '.[dev]'
       - name: Ruff checks (updated modules)
-        run: ruff check src/oleg_commander/config.py src/oleg_commander/tools/ssh.py tests/test_ssh_integration.py
+        run: >-
+          ruff check
+          src/oleg_commander/config.py
+          src/oleg_commander/tools/ssh.py
+          src/oleg_commander/tools/systemd.py
+          src/oleg_commander/tools/docker.py
+          src/oleg_commander/tools/processes.py
+          src/oleg_commander/services/command_service.py
+          src/oleg_commander/tool_result.py
+          tests/test_ssh_integration.py
+          tests/test_local_diagnostics.py
       - name: Compile source
         run: python -m compileall -q src tests
       - name: Run unit tests

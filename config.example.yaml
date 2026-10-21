@@ -32,3 +32,8 @@ execution:
 logging:
   level: INFO
   audit_enabled: true
+  # Optional, explicit allowlists for local diagnostics.
+  # Empty lists disable access to service logs and Docker containers.
+  allowed_systemd_services:
+    - ollama.service
+  allowed_docker_containers: []
