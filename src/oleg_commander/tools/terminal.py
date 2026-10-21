@@ -7,7 +7,6 @@ from ..services.command_service import run_command
 from ..services.secure_filesystem import SecureFilesystem
 from .base import ToolResult
 
-
 _EXECUTABLE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.+-]{0,63}$")
 
 
