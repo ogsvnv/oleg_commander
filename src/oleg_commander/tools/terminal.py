@@ -24,7 +24,7 @@ class TerminalTool:
         executable: str,
         args: list[str],
         cwd: str | None = None,
-        timeout: int = 30,
+        timeout: int | None = None,
     ) -> ToolResult:
         """Run a validated executable without a shell, within an approved root."""
         limits = self.security_manager.config.execution
@@ -45,7 +45,7 @@ class TerminalTool:
                 success=False,
                 error={"code": "INVALID_ARGUMENT", "message": "Invalid command/arguments"},
             )
-        if (
+        if timeout is not None and (
             type(timeout) is not int
             or timeout < 1
             or timeout > limits.timeout
@@ -78,7 +78,7 @@ class TerminalTool:
             with filesystem.directory_fd(directory) as (fd, _):
                 return await run_command(
                     [executable, *args],
-                    timeout=timeout,
+                    timeout=timeout if timeout is not None else limits.timeout,
                     max_output_bytes=limits.max_output_bytes,
                     cwd_fd=fd,
                     env=env,
