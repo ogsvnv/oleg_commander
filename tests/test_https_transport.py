@@ -148,7 +148,13 @@ def test_https_rejects_bad_hostnames(tmp_path, monkeypatch):
 def test_server_routes_https_to_verified_transport(monkeypatch, tmp_path):
     from oleg_commander import server
     from oleg_commander.server import OlegCommanderServer
-    from tests.test_security_regressions import FakeMCPServer
+    class FakeMCPServer:
+        def __init__(self, name):
+            self.name = name
+            self.tools = {}
+
+        def add_tool(self, fn, name, description):
+            self.tools[name] = fn
 
     monkeypatch.setattr(server, "MCPServer", FakeMCPServer)
     monkeypatch.setenv("HOME", str(tmp_path))
