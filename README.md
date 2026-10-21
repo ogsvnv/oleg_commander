@@ -1,8 +1,9 @@
 # Oleg Commander
 
 > **Статус: прототип.** Не используйте для удалённого администрирования в
-> недоверенной сети. SSH/SFTP реализованы через AsyncSSH; systemd, Docker
-> и управление процессами пока возвращают `NOT_IMPLEMENTED`. Система подтверждения
+> недоверенной сети. SSH/SFTP реализованы через AsyncSSH; чтение данных systemd,
+> Docker и процессов выполняется через ограниченные системные команды. Удаление
+> процессов пока отключено. Система подтверждения
 > операций не подключена — при `require_approval: true` запись запрещена.
 > HTTP доступен только на loopback (без внешнего подключения).
 > Следующие задачи — [issue #1](https://github.com/ogsvnv/oleg_commander/issues/1).
@@ -34,6 +35,33 @@ ssh park
   должен поддерживать расширение `posix-rename@openssh.com`.
 - Объём файлов ограничен `execution.max_output_bytes`, время — `execution.timeout`.
 - Подключения SSH временные: закрываются после каждой операции.
+
+## Локальная диагностика (systemd / Docker / процессы)
+
+Для журналов и сведений о контейнерах необходимо указать точные имена в
+`security.allowed_systemd_services` и `security.allowed_docker_containers`.
+Если список пуст — доступ запрещён. Пример:
+
+```yaml
+security:
+  read_only: true
+  require_approval: true
+  allowed_systemd_services: [ollama.service]
+  allowed_docker_containers: [my_app]
+```
+
+Доступны `systemd.status`, `systemd.logs`, `docker.ps`,
+`docker.logs`, `docker.inspect`, `process.list`, `process.info`.
+Просмотр Docker-контейнеров фильтруется по разрешённым именам, а
+`docker.inspect` возвращает только имя, образ и состояние без переменных
+окружения. `ps` не возвращает аргументы или переменные окружения процессов.
+
+Журналы могут содержать секреты, поэтому включайте их только для доверенных
+служб и контейнеров. Общий вывод ограничен
+`execution.max_output_bytes`, время выполнения — `execution.timeout`.
+Перезапуск systemd и Docker требует явного отключения `read_only` и
+`require_approval` (не рекомендуется без отдельного защищённого окружения).
+`process.kill` не реализован.
 
 ## Быстрый запуск
 
