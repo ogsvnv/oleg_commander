@@ -43,7 +43,7 @@ class LoggingConfig(BaseModel):
 
 
 class Config(BaseSettings):
-    """Application settings, with environment overrides via nested __ keys."""
+    """Settings; explicitly supplied YAML takes precedence over environment."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -59,7 +59,7 @@ class Config(BaseSettings):
 
     @classmethod
     def load(cls, path: str | None = None) -> "Config":
-        """Load config.yaml or OLEG_COMMANDER_CONFIG, then apply env overrides.
+        """Load config.yaml or OLEG_COMMANDER_CONFIG; validate every section.
 
         A missing default config.yaml is fine. A missing explicitly selected
         config must fail to avoid silently losing security restrictions.
