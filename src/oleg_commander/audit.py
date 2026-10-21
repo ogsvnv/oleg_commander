@@ -1,58 +1,48 @@
-"""Audit logging for Oleg Commander."""
+"""Structured, privacy-preserving JSONL audit of MCP tool invocations.
+
+No arguments, command output, file contents, tokens, or credentials are logged.
+The file and its directory are accessible only to the local user.
+"""
+
 import json
-import time
-from pathlib import Path
-from typing import Dict, Any, Optional
-from datetime import datetime
 import os
+from collections import deque
+from datetime import UTC, datetime
+from pathlib import Path
+
+from .services.approval_service import private_file, private_state_directory
+
 
 class AuditLogger:
-    """Centralized audit logger for Oleg Commander."""
-    
-    def __init__(self, log_file: str = "audit.log"):
-        self.log_file = Path(log_file)
-        self._ensure_log_directory()
-        
-    def _ensure_log_directory(self):
-        """Ensure the log directory exists."""
-        self.log_file.parent.mkdir(parents=True, exist_ok=True)
-        
-    def log_action(self, request_id: str, client_id: str, tool_name: str, 
-                  target: str, arguments_summary: str, result: Dict[str, Any], 
-                  duration_ms: int, approval_status: str):
-        """Log an action with all relevant information."""
-        
-        # Create audit entry
-        entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "request_id": request_id,
-            "client_id": client_id,
-            "tool_name": tool_name,
-            "target": target,
-            "arguments_summary": arguments_summary,
-            "result": result,
-            "duration_ms": duration_ms,
-            "approval_status": approval_status
-        }
-        
-        # Write to file
-        with open(self.log_file, "a") as f:
-            f.write(json.dumps(entry) + "\n")
-            
-    def get_logs(self, limit: int = 100) -> list:
-        """Get recent logs."""
-        logs = []
-        try:
-            with open(self.log_file, "r") as f:
-                for line in f:
-                    if line.strip():
-                        logs.append(json.loads(line))
-                        
-            return logs[-limit:]  # Return last N logs
-        except FileNotFoundError:
-            return []
-        except Exception:
-            return []
+    """Append minimal outcome metadata to a private local audit log."""
 
-# Global instance of audit logger
-audit_logger = AuditLogger()
+    def __init__(self, path: str | Path | None = None):
+        self.path = Path(path) if path else private_state_directory() / "audit.jsonl"
+        private_file(self.path)
+
+    def record(
+        self, *, tool: str, status: str, request_id: str | None = None,
+        error_code: str | None = None, duration_ms: int = 0,
+    ) -> None:
+        """Append an event, without raw arguments or response contents."""
+        entry = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "tool": tool,
+            "status": status,
+            "request_id": request_id,
+            "error_code": error_code,
+            "duration_ms": duration_ms,
+        }
+        encoded = (json.dumps(entry, sort_keys=True) + "\n").encode("utf-8")
+        fd = os.open(str(self.path), os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW)
+        try:
+            os.write(fd, encoded)
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    def recent(self, limit: int = 30) -> list[dict]:
+        """Fetch recent events for the local CLI only."""
+        with self.path.open(encoding="utf-8") as stream:
+            items = deque(stream, maxlen=min(max(limit, 1), 100))
+        return [json.loads(line) for line in items]

@@ -25,6 +25,9 @@ jobs:
           src/oleg_commander/tools/processes.py
           src/oleg_commander/services/command_service.py
           src/oleg_commander/tool_result.py
+          src/oleg_commander/audit.py
+          src/oleg_commander/services/approval_service.py
+          tests/test_approval_audit.py
           tests/test_ssh_integration.py
           tests/test_local_diagnostics.py
       - name: Compile source

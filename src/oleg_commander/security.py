@@ -3,6 +3,8 @@ import os
 import pathlib
 from typing import List, Optional
 from pathlib import Path, PurePosixPath
+from contextlib import contextmanager
+from contextvars import ContextVar
 from .config import Config
 
 class SecurityManager:
@@ -10,6 +12,7 @@ class SecurityManager:
     
     def __init__(self, config: Config):
         self.config = config
+        self._approved: ContextVar[bool] = ContextVar('approved_mcp_write', default=False)
         self._allowed_directories = set()
         self._allowed_ssh_hosts = set()
         self._initialize_security()
@@ -108,15 +111,23 @@ class SecurityManager:
         # This will be expanded with actual command filtering logic
         return not self.config.security.read_only
     
-    def can_modify(self) -> bool:
-        """Require explicit writable configuration until approvals are implemented.
+    @contextmanager
+    def authorized_write(self):
+        """Enable a single approved write in the current async task only."""
+        token = self._approved.set(True)
+        try:
+            yield
+        finally:
+            self._approved.reset(token)
 
-        The approval service is not yet connected to tool execution. It is
-        unsafe to treat a requested approval as an actual authorization.
+    def can_modify(self) -> bool:
+        """Never permit writes in read-only mode.
+
+        When approvals are mandatory, only an approved server-side tool
+        wrapper may enable writes in its own execution context.
         """
-        return (
-            not self.config.security.read_only
-            and not self.config.security.require_approval
+        return not self.config.security.read_only and (
+            not self.config.security.require_approval or self._approved.get()
         )
 
     def require_approval(self) -> bool:
