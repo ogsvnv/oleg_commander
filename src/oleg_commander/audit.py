@@ -6,9 +6,8 @@ The file and its directory are accessible only to the local user.
 
 import json
 import os
-import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .services.approval_service import private_file, private_state_directory
@@ -27,7 +26,7 @@ class AuditLogger:
     ) -> None:
         """Append an event, without raw arguments or response contents."""
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "tool": tool,
             "status": status,
             "request_id": request_id,
