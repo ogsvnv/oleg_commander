@@ -75,7 +75,7 @@ def main() -> None:
             )
     else:
         print("Implemented: MCP, SSH, filesystem, Git and allowlisted diagnostics")
-        print("Process termination, remote HTTP auth and advanced approval UI pending")
+        print("Process termination, OAuth and advanced approval UI pending")
 
 
 if __name__ == "__main__":
