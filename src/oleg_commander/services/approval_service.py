@@ -13,8 +13,9 @@ import sqlite3
 import stat
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 
 def private_state_directory() -> Path:
