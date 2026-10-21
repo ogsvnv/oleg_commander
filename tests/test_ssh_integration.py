@@ -1,7 +1,6 @@
 """Integration-style SSH policy tests without live network access."""
 
 import asyncio
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
