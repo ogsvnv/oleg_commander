@@ -1,10 +1,7 @@
 """Security regressions for descriptor-relative filesystem MCP tools."""
 
 import asyncio
-import os
 from pathlib import Path
-
-import pytest
 
 from oleg_commander.config import Config, ExecutionConfig, SecurityConfig
 from oleg_commander.security import SecurityManager
