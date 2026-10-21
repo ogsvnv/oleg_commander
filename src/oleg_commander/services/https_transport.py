@@ -13,7 +13,6 @@ from pathlib import Path
 import uvicorn
 from mcp.server.transport_security import TransportSecuritySettings
 
-
 _HOSTNAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9.-]{0,251}[a-zA-Z0-9]$")
 _TOKEN = re.compile(r"^[A-Za-z0-9_-]{32,256}$")
 
