@@ -50,7 +50,7 @@ class SSHTool:
         return None
 
     def _failure(self, exc):
-        if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+        if isinstance(exc, TimeoutError):
             code = "TIMEOUT"
         elif isinstance(exc, PermissionError):
             code = "FORBIDDEN"
@@ -75,38 +75,42 @@ class SSHTool:
         return canonical
 
     async def _read_remote(self, host, path):
-        async with self._connection(host) as conn:
-            async with conn.start_sftp_client() as sftp:
-                canonical = await self._checked_path(sftp, host, path)
-                async with sftp.open(canonical, "rb") as remote_file:
-                    data = await remote_file.read(self._limits.max_output_bytes + 1)
-                if len(data) > self._limits.max_output_bytes:
-                    raise ValueError("Remote file exceeds configured size limit")
-                return data
+        async with (
+            self._connection(host) as conn,
+            conn.start_sftp_client() as sftp,
+        ):
+            canonical = await self._checked_path(sftp, host, path)
+            async with sftp.open(canonical, "rb") as remote_file:
+                data = await remote_file.read(self._limits.max_output_bytes + 1)
+            if len(data) > self._limits.max_output_bytes:
+                raise ValueError("Remote file exceeds configured size limit")
+            return data
 
     async def _write_remote(self, host, path, content):
         """Write through a unique file and an atomic POSIX rename."""
         if len(content) > self._limits.max_output_bytes:
             raise ValueError("Content exceeds configured size limit")
 
-        async with self._connection(host) as conn:
-            async with conn.start_sftp_client() as sftp:
-                canonical = await self._checked_path(sftp, host, path)
-                temporary = f"{canonical}.oleg-commander-{uuid4().hex}"
-                if not self.security_manager.is_ssh_path_allowed(host, temporary):
-                    raise PermissionError("Temporary path outside permitted directories")
+        async with (
+            self._connection(host) as conn,
+            conn.start_sftp_client() as sftp,
+        ):
+            canonical = await self._checked_path(sftp, host, path)
+            temporary = f"{canonical}.oleg-commander-{uuid4().hex}"
+            if not self.security_manager.is_ssh_path_allowed(host, temporary):
+                raise PermissionError("Temporary path outside permitted directories")
+            try:
+                async with sftp.open(temporary, "xb") as remote_file:
+                    await remote_file.write(content)
+                # Explicit POSIX rename support is required. No unsafe
+                # in-place overwrite fallback is attempted.
+                await sftp.posix_rename(temporary, canonical)
+            except Exception:
                 try:
-                    async with sftp.open(temporary, "xb") as remote_file:
-                        await remote_file.write(content)
-                    # Explicit POSIX rename support is required. No unsafe
-                    # in-place overwrite fallback is attempted.
-                    await sftp.posix_rename(temporary, canonical)
-                except Exception:
-                    try:
-                        await sftp.remove(temporary)
-                    except (OSError, asyncssh.Error):
-                        pass
-                    raise
+                    await sftp.remove(temporary)
+                except (OSError, asyncssh.Error):
+                    pass
+                raise
 
     async def ssh_list_hosts(self) -> ToolResult:
         return ToolResult(
@@ -124,7 +128,7 @@ class SSHTool:
                     success=True,
                     data={"host": host, "verified": True, "connected": True},
                 )
-        except (asyncssh.Error, OSError, asyncio.TimeoutError) as exc:
+        except (asyncssh.Error, OSError, TimeoutError) as exc:
             return self._failure(exc)
 
     async def ssh_execute(
@@ -143,12 +147,14 @@ class SSHTool:
                 success=False,
                 error={"code": "INVALID_ARGUMENT", "message": "Arguments must be strings"},
             )
-        if not self.security_manager.can_modify():
-            if executable not in self.READ_ONLY_COMMANDS or args:
-                return ToolResult(
-                    success=False,
-                    error={"code": "FORBIDDEN", "message": "Unsafe SSH command denied"},
-                )
+        if (
+            not self.security_manager.can_modify()
+            and (executable not in self.READ_ONLY_COMMANDS or args)
+        ):
+            return ToolResult(
+                success=False,
+                error={"code": "FORBIDDEN", "message": "Unsafe SSH command denied"},
+            )
         if not isinstance(timeout, int) or timeout <= 0:
             return ToolResult(
                 success=False,
@@ -185,7 +191,7 @@ class SSHTool:
                     error={"code": "NON_ZERO_EXIT", "message": "Remote command failed"},
                 )
             return ToolResult(success=True, data=data)
-        except (asyncssh.Error, OSError, asyncio.TimeoutError) as exc:
+        except (asyncssh.Error, OSError, TimeoutError) as exc:
             return self._failure(exc)
 
     async def ssh_read_file(self, host: str, path: str) -> ToolResult:
@@ -202,7 +208,7 @@ class SSHTool:
                 success=True,
                 data={"host": host, "path": path, "content": content.decode("utf-8")},
             )
-        except (asyncssh.Error, OSError, asyncio.TimeoutError,
+        except (asyncssh.Error, OSError, TimeoutError,
                 PermissionError, UnicodeDecodeError, ValueError) as exc:
             return self._failure(exc)
 
@@ -220,7 +226,7 @@ class SSHTool:
                 self._write_remote(host, path, data), timeout=self._limits.timeout
             )
             return ToolResult(success=True, data={"host": host, "path": path})
-        except (asyncssh.Error, OSError, asyncio.TimeoutError,
+        except (asyncssh.Error, OSError, TimeoutError,
                 PermissionError, ValueError) as exc:
             return self._failure(exc)
 
@@ -245,9 +251,15 @@ class SSHTool:
                 timeout=self._limits.timeout,
             )
             return ToolResult(success=True, data={"bytes": len(data)})
-        except (asyncssh.Error, OSError, asyncio.TimeoutError,
+        except (asyncssh.Error, OSError, TimeoutError,
                 PermissionError, ValueError) as exc:
             return self._failure(exc)
+
+    @staticmethod
+    def _save_new_local_file(local_path: str, data: bytes) -> None:
+        """Exclusively create the download target without blocking the loop."""
+        with Path(local_path).open("xb") as destination:
+            destination.write(data)
 
     async def ssh_download(self, host: str, remote_path: str, local_path: str) -> ToolResult:
         """Download without overwriting an existing local file."""
@@ -265,10 +277,9 @@ class SSHTool:
                 self._read_remote(host, remote_path), timeout=self._limits.timeout
             )
             # Exclusive create prevents clobbering existing files and symlinks.
-            with Path(local_path).open("xb") as destination:
-                destination.write(data)
+            await asyncio.to_thread(self._save_new_local_file, local_path, data)
             return ToolResult(success=True, data={"bytes": len(data)})
-        except (asyncssh.Error, OSError, asyncio.TimeoutError,
+        except (asyncssh.Error, OSError, TimeoutError,
                 PermissionError, ValueError) as exc:
             return self._failure(exc)
 
