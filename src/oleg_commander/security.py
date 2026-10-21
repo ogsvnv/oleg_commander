@@ -49,10 +49,8 @@ class SecurityManager:
                           for allowed in self._allowed_directories):
                     return False
             else:
-                # If no directories are explicitly allowed, only allow within home directory
-                home = Path.home()
-                if not resolved_path.is_relative_to(home):
-                    return False
+                # An omitted allowlist must never expose the entire home directory.
+                return False
             
             return True
         except Exception:
