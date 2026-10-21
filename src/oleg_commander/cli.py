@@ -20,8 +20,7 @@ def main():
         try:
             asyncio.run(server.start())
         except KeyboardInterrupt:
-            print("Shutting down...")
-            asyncio.run(server.stop())
+            pass
     
     elif command == "status":
         print("Oleg Commander status: Not implemented yet")
