@@ -8,7 +8,6 @@ from ..services.command_service import run_command
 from ..services.secure_filesystem import SecureFilesystem
 from .base import ToolResult
 
-
 _BRANCH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9/_-]{0,79}$")
 _GIT_OPTIONS = (
     "git",
@@ -132,7 +131,7 @@ class GitTool:
         if denied := self._allow_write():
             return denied
         if not isinstance(name, str) or not _BRANCH.fullmatch(name) or (
-            "//" in name or name.endswith("/") or name.endswith(".lock")
+            "//" in name or name.endswith(("/", ".lock"))
         ):
             return ToolResult(
                 success=False,
