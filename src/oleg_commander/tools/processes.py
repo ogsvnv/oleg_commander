@@ -14,8 +14,8 @@ class ProcessTool:
         try:
             # In a real implementation we would use ps or similar tools
             return ToolResult(
-                success=True,
-                data={"message": "Process listing not implemented in this version"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "processes operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -28,8 +28,8 @@ class ProcessTool:
         try:
             # In a real implementation we would use ps or similar tools
             return ToolResult(
-                success=True,
-                data={"message": f"Process info for PID {pid} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "processes operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -40,7 +40,7 @@ class ProcessTool:
     async def kill_process(self, pid: int) -> ToolResult:
         """Kill a running process."""
         try:
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -48,8 +48,8 @@ class ProcessTool:
                 
             # In a real implementation we would use os.kill or similar
             return ToolResult(
-                success=True,
-                data={"message": f"Process {pid} kill not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "processes operation not implemented"},
             )
         except Exception as e:
             return ToolResult(

@@ -257,7 +257,7 @@ class GitTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -317,7 +317,7 @@ class GitTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -379,7 +379,7 @@ class GitTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -432,6 +432,11 @@ class GitTool:
     async def git_pull(self, path: str) -> ToolResult:
         """Pull changes from remote origin."""
         try:
+            if not self.security_manager.can_modify():
+                return ToolResult(
+                    success=False,
+                    error={"code": "FORBIDDEN", "message": "Git pull needs write permission"},
+                )
             # Validate path is allowed
             if not self.security_manager.is_path_allowed(path):
                 return ToolResult(
@@ -493,7 +498,7 @@ class GitTool:
                     error={"code": "FORBIDDEN", "message": "Access to path denied"}
                 )
                 
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}

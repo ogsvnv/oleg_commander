@@ -5,11 +5,10 @@ After=network.target
 [Service]
 Type=simple
 User=ogsvnv
-ExecStart=/usr/bin/python3 -m src.oleg_commander.server
+ExecStart=/home/ogsvnv/Develop/oleg_commander/.venv/bin/oleg-commander start
 Restart=always
 RestartSec=10
 WorkingDirectory=/home/ogsvnv/Develop/oleg_commander
-Environment=PYTHONPATH=/home/ogsvnv/Develop/oleg_commander/src
 
 [Install]
 WantedBy=default.target

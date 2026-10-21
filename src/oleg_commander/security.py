@@ -73,7 +73,7 @@ class SecurityManager:
     def is_ssh_host_allowed(self, hostname: str) -> bool:
         """Check if SSH host is allowed."""
         if not self.config.security.allowed_ssh_hosts:
-            return True  # If no hosts specified, allow all
+            return False  # No SSH hosts configured: deny by default
         
         return hostname in self._allowed_ssh_hosts
     
@@ -82,6 +82,17 @@ class SecurityManager:
         # This will be expanded with actual command filtering logic
         return not self.config.security.read_only
     
+    def can_modify(self) -> bool:
+        """Require explicit writable configuration until approvals are implemented.
+
+        The approval service is not yet connected to tool execution. It is
+        unsafe to treat a requested approval as an actual authorization.
+        """
+        return (
+            not self.config.security.read_only
+            and not self.config.security.require_approval
+        )
+
     def require_approval(self) -> bool:
         """Check if approval is required for operations."""
         return self.config.security.require_approval

@@ -1,5 +1,29 @@
 # Oleg Commander
 
+> **Статус: прототип.** Не используйте для удалённого администрирования в
+> недоверенной сети. SSH, systemd, Docker и управление процессами пока заглушки:
+> возвращают `NOT_IMPLEMENTED`, а не фиктивный успех. Система подтверждения
+> операций не подключена — при `require_approval: true` запись запрещена.
+> HTTP доступен только на loopback (без внешнего подключения).
+> Следующие задачи — [issue #1](https://github.com/ogsvnv/oleg_commander/issues/1).
+
+## Быстрый запуск
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/oleg-commander doctor
+.venv/bin/oleg-commander start
+# Локальный HTTP (только 127.0.0.1):
+.venv/bin/oleg-commander start --transport http
+```
+
+По умолчанию доступен только безопасный режим: чтение файлов в разрешённых
+каталогах, операции чтения Git и ограниченные команды терминала без аргументов.
+Для разрешения записи одновременно нужны `read_only: false` и
+`require_approval: false`, что пока **не рекомендуется** для MCP-доступа.
+
+
 Oleg Commander — это собственный аналог Desktop Commander для удалённого управления компьютерами через Model Context Protocol (MCP).
 
 ## Назначение
@@ -124,7 +148,7 @@ oleg_commander/
 
 ## Безопасность
 
-Проект реализует защиту от:
+Следующие средства защиты запланированы или частично реализованы:
 - Path traversal атак
 - Проверки подлинности SSH-хостов 
 - Ограничения доступа к каталогам
@@ -169,10 +193,7 @@ logging:
 oleg-commander start          # Запуск сервера
 oleg-commander doctor         # Диагностика системы
 oleg-commander status         # Статус сервера  
-oleg-commander logs           # Журнал действий
-oleg-commander approvals      # Запросы на одобрение
-oleg-commander approve <id>   # Одобрить запрос
-oleg-commander reject <id>    # Отклонить запрос
+\# Остальные команды CLI пока не реализованы
 ```
 
 ## Подключение MCP-клиента
@@ -184,17 +205,15 @@ oleg-commander start
 ```
 
 ### Для удалённого подключения:
-Для использования с ChatGPT или другими MCP клиентами через HTTP:
-
-1. Настройте SSL-сертификат
-2. Включите аутентификацию в конфигурации
-3. Используйте endpoint `/mcp` 
+Прямой доступ из ChatGPT через публичный HTTP **пока не поддерживается**:
+нужны проверенная аутентификация, HTTPS и отдельная модель доверия.
+Локальный HTTP использует endpoint `/mcp`. 
 
 ## Примеры использования
 
 1. Прочитать файл из ~/Develop:
 ```bash
-oleg-commander execute filesystem.read_file --path ~/Develop/README.md
+\# Примеры ниже — целевой формат, команда execute пока не реализована
 ```
 
 2. Найти код функции в Django-проекте:

@@ -41,8 +41,8 @@ class SSHTool:
             # 3. Return connection status
             
             return ToolResult(
-                success=True,
-                data={"message": f"SSH connection to {host} verified"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -67,8 +67,8 @@ class SSHTool:
             # 3. Handle timeouts and errors
             
             return ToolResult(
-                success=True,
-                data={"message": f"Command executed on {host}: {executable} {' '.join(args)}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -92,8 +92,8 @@ class SSHTool:
             # 3. Read and return content
             
             return ToolResult(
-                success=True,
-                data={"message": f"File read from {host}:{path}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -116,8 +116,8 @@ class SSHTool:
             # 2. Write content to file via SFTP
             
             return ToolResult(
-                success=True,
-                data={"message": f"File written to {host}:{path}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -140,8 +140,8 @@ class SSHTool:
             # 2. Upload file via SFTP
             
             return ToolResult(
-                success=True,
-                data={"message": f"File uploaded from {local_path} to {host}:{remote_path}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -164,8 +164,8 @@ class SSHTool:
             # 2. Download file via SFTP
             
             return ToolResult(
-                success=True,
-                data={"message": f"File downloaded from {host}:{remote_path} to {local_path}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -179,8 +179,8 @@ class SSHTool:
             # In a real implementation, we would close the SSH connection
             
             return ToolResult(
-                success=True,
-                data={"message": f"Disconnected from {host}"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "ssh operation not implemented"},
             )
         except Exception as e:
             return ToolResult(

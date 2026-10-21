@@ -10,18 +10,20 @@ class TerminalTool:
     
     def __init__(self, security_manager):
         self.security_manager = security_manager
-        # List of allowed commands (add more as needed)
-        self._allowed_commands = {
-            'ls', 'cat', 'grep', 'find', 'echo', 'pwd', 'whoami',
-            'df', 'du', 'ps', 'top', 'uptime', 'date', 'time'
-        }
-    
+        # Safe, argument-free queries while mutations require approval.
+        self._allowed_commands = {"pwd", "whoami", "uptime", "date", "uname"}
+
     async def execute_command(self, executable: str, args: List[str], 
                             cwd: Optional[str] = None, timeout: int = 30) -> ToolResult:
         """Execute a command in the terminal."""
         try:
+            if cwd and not self.security_manager.is_path_allowed(cwd):
+                return ToolResult(
+                    success=False,
+                    error={"code": "FORBIDDEN", "message": "Working directory denied"},
+                )
             # Check if command is allowed
-            if not self._is_command_allowed(executable):
+            if not self._is_command_allowed(executable, args):
                 return ToolResult(
                     success=False,
                     error={"code": "FORBIDDEN", "message": f"Command '{executable}' not allowed"}
@@ -67,43 +69,27 @@ class TerminalTool:
                 error={"code": "UNKNOWN_ERROR", "message": str(e)}
             )
     
-    def _is_command_allowed(self, command: str) -> bool:
-        """Check if a command is in the allowed list."""
-        if self.security_manager.config.security.read_only:
-            # In read-only mode, only allow safe operations
-            return command in self._allowed_commands
-        
-        # Allow all commands in read-write mode, but still check for path traversal risks
+    def _is_command_allowed(self, command: str, args: List[str]) -> bool:
+        """Prevent arbitrary code execution without an approval mechanism."""
+        if not self.security_manager.can_modify():
+            return command in self._allowed_commands and not args
         return True
 
-    async def start_process(self, executable: str, args: List[str], 
-                           cwd: Optional[str] = None) -> ToolResult:
-        """Start a process."""
-        try:
-            full_command = [executable] + args
-            
-            process = await asyncio.create_subprocess_exec(
-                executable,
-                *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd if cwd else None
-            )
-            
-            # We could store process info here for tracking...
-            return ToolResult(
-                success=True,
-                data={
-                    "process_id": process.pid,
-                    "status": "started"
-                }
-            )
-        except Exception as e:
-            return ToolResult(
-                success=False,
-                error={"code": "UNKNOWN_ERROR", "message": str(e)}
-            )
-            
+    async def start_process(
+        self,
+        executable: str,
+        args: List[str],
+        cwd: Optional[str] = None,
+    ) -> ToolResult:
+        """Reject untracked processes until lifecycle controls are implemented."""
+        return ToolResult(
+            success=False,
+            error={
+                "code": "NOT_IMPLEMENTED",
+                "message": "Background process management is unavailable",
+            },
+        )
+
     async def get_process_output(self, process_id: int) -> ToolResult:
         """Get output from a running process."""
         return ToolResult(
@@ -116,8 +102,8 @@ class TerminalTool:
         try:
             # For demonstration - we can't properly terminate processes in this context
             return ToolResult(
-                success=True,
-                data={"message": "Process termination not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "Process termination unavailable"}
             )
         except Exception as e:
             return ToolResult(
