@@ -218,3 +218,54 @@ def test_path_limit_and_basic_search(tmp_path):
     assert result.error["code"] == "INVALID_ARGUMENT"
     info = run(tool.get_file_info(str(nested / "hello.py")))
     assert info.data["info"]["is_file"]
+
+
+def test_ancestor_symlink_swap_cannot_retarget_approved_root(tmp_path):
+    """Changing an ancestor after setup must not broaden the allowlist."""
+    parent = tmp_path / "anchor"
+    approved = parent / "approved"
+    approved.mkdir(parents=True)
+    (approved / "ok.txt").write_text("original")
+    tool = tool_for(approved, writable=True)
+
+    # Move the original subtree, then point the old ancestor at a completely
+    # different subtree which contains a matching relative filename.
+    replacement = tmp_path / "replacement"
+    (replacement / "approved").mkdir(parents=True)
+    outside = replacement / "approved" / "secret.txt"
+    outside.write_text("private")
+    parent.rename(tmp_path / "moved-anchor")
+    parent.symlink_to(replacement, target_is_directory=True)
+
+    via_old_path = run(
+        tool.read_file(str(parent / "approved" / "secret.txt"))
+    )
+    assert via_old_path.error["code"] == "FORBIDDEN"
+
+    via_actual_path = run(tool.read_file(str(outside)))
+    assert via_actual_path.error["code"] == "FORBIDDEN"
+
+    overwrite = run(
+        tool.write_file(str(parent / "approved" / "secret.txt"), "leaked")
+    )
+    assert overwrite.error["code"] == "FORBIDDEN"
+    assert outside.read_text() == "private"
+
+
+def test_direct_symlink_is_not_accepted_as_approved_root(tmp_path):
+    """A symlink supplied as a root is never silently followed at use time."""
+    from oleg_commander.services.secure_filesystem import SecureFilesystem
+
+    actual = tmp_path / "actual"
+    actual.mkdir()
+    (actual / "secret").write_text("secret")
+    link = tmp_path / "link"
+    link.symlink_to(actual, target_is_directory=True)
+
+    filesystem = SecureFilesystem([link], max_bytes=1024)
+    try:
+        filesystem.read_bytes(str(link / "secret"))
+    except (PermissionError, OSError):
+        pass
+    else:
+        raise AssertionError("Root symlink must be denied")
