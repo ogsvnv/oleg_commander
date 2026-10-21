@@ -149,17 +149,18 @@ class SSHTool:
                     success=False,
                     error={"code": "FORBIDDEN", "message": "Unsafe SSH command denied"},
                 )
-        if not 0 < timeout <= self._limits.timeout:
+        if not isinstance(timeout, int) or timeout <= 0:
             return ToolResult(
                 success=False,
                 error={"code": "INVALID_ARGUMENT", "message": "Invalid timeout"},
             )
 
+        effective_timeout = min(timeout, self._limits.timeout)
         command = shlex.join([executable, *args])
         try:
             async with self._connection(host) as conn:
                 result = await asyncio.wait_for(
-                    conn.run(command, check=False), timeout=timeout
+                    conn.run(command, check=False), timeout=effective_timeout
                 )
             stdout = result.stdout or ""
             stderr = result.stderr or ""
