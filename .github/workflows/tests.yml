@@ -15,8 +15,6 @@ jobs:
           python-version: '3.12'
       - name: Install package and test dependencies
         run: python -m pip install -e '.[dev]'
-      - name: Ruff import hints
-        run: ruff check --select I --diff src/oleg_commander/tools/git.py src/oleg_commander/tools/terminal.py || true
       - name: Ruff checks (updated modules)
         run: >-
           ruff check
