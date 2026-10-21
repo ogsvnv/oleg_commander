@@ -44,6 +44,15 @@ def make_security(*, read_only=True, require_approval=True, **kwargs):
     return SecurityManager(config)
 
 
+def test_real_mcp_sdk_accepts_all_tool_definitions():
+    """Catch breaking SDK interface changes without starting the transport."""
+    from mcp.server import MCPServer
+
+    app = OlegCommanderServer(Config())
+    app.server = MCPServer(name="Oleg Commander Test")
+    asyncio.run(app._register_tools())
+
+
 def test_start_registers_tools_and_uses_stdio(monkeypatch):
     monkeypatch.setattr("oleg_commander.server.MCPServer", FakeMCPServer)
     asyncio.run(OlegCommanderServer(Config()).start())
