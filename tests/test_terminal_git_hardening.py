@@ -1,9 +1,7 @@
 """Real local terminal/Git tests: bounded subprocesses, argv, path boundaries."""
 
 import asyncio
-import os
 import subprocess
-from pathlib import Path
 
 from oleg_commander.config import Config, ExecutionConfig, SecurityConfig
 from oleg_commander.security import SecurityManager
