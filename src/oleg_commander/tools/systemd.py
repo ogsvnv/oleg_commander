@@ -5,7 +5,7 @@ import re
 from ..services.command_service import run_command
 from .base import ToolResult
 
-_SERVICE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}\\.service$")
+_SERVICE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}\.service$")
 
 
 class SystemdTool:
