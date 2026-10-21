@@ -2,7 +2,6 @@
 
 import asyncio
 import errno
-from pathlib import Path
 
 from ..services.secure_filesystem import SecureFilesystem
 from .base import ToolResult
