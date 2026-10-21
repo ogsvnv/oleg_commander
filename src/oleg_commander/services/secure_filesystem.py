@@ -10,9 +10,9 @@ import os
 import stat
 import time
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from collections.abc import Iterator
 
 _DIRECTORY = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW
 _REGULAR = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
@@ -218,24 +218,26 @@ class SecureFilesystem:
         seen = 0
         while queue:
             current, depth = queue.pop(0)
-            with self.directory_fd(current) as (directory, base):
-                with os.scandir(directory) as iterator:
-                    for entry in iterator:
-                        if time.monotonic() - started > 3 or seen >= 2000:
-                            return
-                        seen += 1
-                        try:
-                            info = entry.stat(follow_symlinks=False)
-                        except FileNotFoundError:
-                            continue
-                        if not (
-                            stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)
-                        ):
-                            continue
-                        child = base / entry.name
-                        yield child, info
-                        if stat.S_ISDIR(info.st_mode) and depth + 1 < max_depth:
-                            queue.append((str(child), depth + 1))
+            with (
+                self.directory_fd(current) as (directory, base),
+                os.scandir(directory) as iterator,
+            ):
+                for entry in iterator:
+                    if time.monotonic() - started > 3 or seen >= 2000:
+                        return
+                    seen += 1
+                    try:
+                        info = entry.stat(follow_symlinks=False)
+                    except FileNotFoundError:
+                        continue
+                    if not (
+                        stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)
+                    ):
+                        continue
+                    child = base / entry.name
+                    yield child, info
+                    if stat.S_ISDIR(info.st_mode) and depth + 1 < max_depth:
+                        queue.append((str(child), depth + 1))
 
     def search_files(self, path: str, pattern: str) -> list[dict]:
         if not isinstance(pattern, str) or not pattern or len(pattern) > 128:
