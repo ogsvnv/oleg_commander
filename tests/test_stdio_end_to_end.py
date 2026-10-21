@@ -68,36 +68,38 @@ async def _stdio_smoke(tmp_path):
         },
     )
     with anyio.fail_after(20):
-        async with stdio_client(parameters) as (read, write):
-            async with ClientSession(read, write) as session:
-                hello = await session.initialize()
-                assert hello.server_info.name == "Oleg Commander"
+        async with (
+            stdio_client(parameters) as (read, write),
+            ClientSession(read, write) as session,
+        ):
+            hello = await session.initialize()
+            assert hello.server_info.name == "Oleg Commander"
 
-                listing = await session.list_tools()
-                names = {tool.name for tool in listing.tools}
-                assert "filesystem.read_file" in names
-                assert "git.pull" not in names
-                assert "process.kill" not in names
+            listing = await session.list_tools()
+            names = {tool.name for tool in listing.tools}
+            assert "filesystem.read_file" in names
+            assert "git.pull" not in names
+            assert "process.kill" not in names
 
-                result = await session.call_tool(
-                    "filesystem.read_file", {"path": str(target)}
-                )
-                text = "\n".join(
-                    chunk.text for chunk in result.content
-                    if hasattr(chunk, "text")
-                )
-                assert "MCP_SUBPROCESS_READ_OK" in text
+            result = await session.call_tool(
+                "filesystem.read_file", {"path": str(target)}
+            )
+            text = "\n".join(
+                chunk.text for chunk in result.content
+                if hasattr(chunk, "text")
+            )
+            assert "MCP_SUBPROCESS_READ_OK" in text
 
-                forbidden = await session.call_tool(
-                    "filesystem.write_file",
-                    {"path": str(target), "content": "OVERWRITE_DENIED"},
-                )
-                blocked = "\n".join(
-                    chunk.text for chunk in forbidden.content
-                    if hasattr(chunk, "text")
-                )
-                assert "READ_ONLY" in blocked
-                assert target.read_text() == "MCP_SUBPROCESS_READ_OK"
+            forbidden = await session.call_tool(
+                "filesystem.write_file",
+                {"path": str(target), "content": "OVERWRITE_DENIED"},
+            )
+            blocked = "\n".join(
+                chunk.text for chunk in forbidden.content
+                if hasattr(chunk, "text")
+            )
+            assert "READ_ONLY" in blocked
+            assert target.read_text() == "MCP_SUBPROCESS_READ_OK"
 
 
 def test_cli_mcp_stdio_initialization_and_tool_invocation(tmp_path):
