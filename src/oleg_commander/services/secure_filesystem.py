@@ -77,7 +77,7 @@ class SecureFilesystem:
         root, parts, absolute = self._locate(path)
         if not parts:
             raise PermissionError("Cannot modify an allowlist root")
-        fd = os.open(root, _DIRECTORY)
+        fd = self._open_root(root)
         try:
             for part in parts[:-1]:
                 child = os.open(part, _DIRECTORY, dir_fd=fd)
