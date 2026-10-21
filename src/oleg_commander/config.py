@@ -15,6 +15,9 @@ class ServerConfig(BaseModel):
     transport: str = "stdio"
     host: str = "127.0.0.1"
     port: int = Field(default=8765, ge=1, le=65535)
+    public_host: str | None = None
+    tls_certfile: str | None = None
+    tls_keyfile: str | None = None
 
 
 class SecurityConfig(BaseModel):
