@@ -15,6 +15,8 @@ async def run_command(
     *,
     timeout: int,
     max_output_bytes: int,
+    cwd_fd: int | None = None,
+    env: dict[str, str] | None = None,
 ) -> ToolResult:
     """Execute fixed argv without a shell, bounding memory and elapsed time.
 
@@ -26,6 +28,10 @@ async def run_command(
             *argv,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            # Linux: hold the verified cwd inode, not a re-resolved pathname.
+            cwd=f"/proc/self/fd/{cwd_fd}" if cwd_fd is not None else None,
+            pass_fds=(cwd_fd,) if cwd_fd is not None else (),
+            env=env,
         )
     except FileNotFoundError:
         return ToolResult(

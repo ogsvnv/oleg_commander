@@ -1,112 +1,111 @@
-"""Terminal tools for Oleg Commander."""
-import asyncio
-import shlex
-from pathlib import Path
-from typing import List, Optional, Dict, Any
+"""Local terminal with bounded execution and descriptor-safe working directories."""
+
+import os
+import re
+
+from ..services.command_service import run_command
+from ..services.secure_filesystem import SecureFilesystem
 from .base import ToolResult
 
+_EXECUTABLE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.+-]{0,63}$")
+
+
 class TerminalTool:
-    """Tools for working with the terminal."""
-    
+    """Execute safe diagnostics or independently approved commands."""
+
+    READ_ONLY_COMMANDS = frozenset({"pwd", "whoami", "uptime", "date", "uname"})
+
     def __init__(self, security_manager):
         self.security_manager = security_manager
-        # Safe, argument-free queries while mutations require approval.
-        self._allowed_commands = {"pwd", "whoami", "uptime", "date", "uname"}
+        self._allowed_commands = self.READ_ONLY_COMMANDS
 
-    async def execute_command(self, executable: str, args: List[str], 
-                            cwd: Optional[str] = None, timeout: int = 30) -> ToolResult:
-        """Execute a command in the terminal."""
-        try:
-            if cwd and not self.security_manager.is_path_allowed(cwd):
-                return ToolResult(
-                    success=False,
-                    error={"code": "FORBIDDEN", "message": "Working directory denied"},
-                )
-            # Check if command is allowed
-            if not self._is_command_allowed(executable, args):
-                return ToolResult(
-                    success=False,
-                    error={"code": "FORBIDDEN", "message": f"Command '{executable}' not allowed"}
-                )
-                
-            # Prepare command
-            full_command = [executable] + args
-            
-            # Set up process creation
-            process = await asyncio.create_subprocess_exec(
-                executable, 
-                *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd if cwd else None
-            )
-            
-            # Wait for completion with timeout
-            try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-                
-                result = {
-                    "success": True,
-                    "exit_code": process.returncode,
-                    "stdout": stdout.decode('utf-8') if stdout else "",
-                    "stderr": stderr.decode('utf-8') if stderr else "",
-                    "duration_ms": 0
-                }
-                
-                return ToolResult(success=True, data=result)
-            except asyncio.TimeoutError:
-                # Kill the process if it times out
-                process.kill()
-                await process.wait()
-                return ToolResult(
-                    success=False,
-                    error={"code": "TIMEOUT", "message": f"Command timed out after {timeout}s"}
-                )
-                
-        except Exception as e:
-            return ToolResult(
-                success=False,
-                error={"code": "UNKNOWN_ERROR", "message": str(e)}
-            )
-    
-    def _is_command_allowed(self, command: str, args: List[str]) -> bool:
-        """Prevent arbitrary code execution without an approval mechanism."""
-        if not self.security_manager.can_modify():
-            return command in self._allowed_commands and not args
-        return True
-
-    async def start_process(
+    async def execute_command(
         self,
         executable: str,
-        args: List[str],
-        cwd: Optional[str] = None,
+        args: list[str],
+        cwd: str | None = None,
+        timeout: int | None = None,
     ) -> ToolResult:
-        """Reject untracked processes until lifecycle controls are implemented."""
+        """Run a validated executable without a shell, within an approved root."""
+        limits = self.security_manager.config.execution
+        if (
+            not isinstance(executable, str)
+            or not _EXECUTABLE.fullmatch(executable)
+            or not isinstance(args, list)
+            or len(args) > 32
+            or any(
+                not isinstance(arg, str)
+                or len(arg) > 2048
+                or "\x00" in arg
+                for arg in args
+            )
+            or sum(len(arg) for arg in args) > 8192
+        ):
+            return ToolResult(
+                success=False,
+                error={"code": "INVALID_ARGUMENT", "message": "Invalid command/arguments"},
+            )
+        if timeout is not None and (
+            type(timeout) is not int
+            or timeout < 1
+            or timeout > limits.timeout
+        ):
+            return ToolResult(
+                success=False,
+                error={"code": "INVALID_ARGUMENT", "message": "Invalid timeout"},
+            )
+        if not self.security_manager.can_modify() and (
+            executable not in self.READ_ONLY_COMMANDS or bool(args)
+        ):
+            return ToolResult(
+                success=False,
+                error={"code": "FORBIDDEN", "message": "Command needs approval"},
+            )
+        roots = self.security_manager.get_allowed_directories()
+        if not roots:
+            return ToolResult(
+                success=False,
+                error={"code": "FORBIDDEN", "message": "No allowed directories"},
+            )
+        directory = cwd if cwd is not None else str(roots[0])
+        filesystem = SecureFilesystem(roots, limits.max_output_bytes)
+        env = {
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "HOME": os.path.expanduser("~"),
+            "LANG": "C.UTF-8",
+        }
+        try:
+            with filesystem.directory_fd(directory) as (fd, _):
+                return await run_command(
+                    [executable, *args],
+                    timeout=timeout if timeout is not None else limits.timeout,
+                    max_output_bytes=limits.max_output_bytes,
+                    cwd_fd=fd,
+                    env=env,
+                )
+        except (OSError, ValueError, PermissionError):
+            return ToolResult(
+                success=False,
+                error={"code": "FORBIDDEN", "message": "Working directory denied"},
+            )
+
+    async def start_process(
+        self, executable: str, args: list[str], cwd: str | None = None
+    ) -> ToolResult:
+        """Persistent process execution requires lifecycle and safety controls."""
         return ToolResult(
             success=False,
-            error={
-                "code": "NOT_IMPLEMENTED",
-                "message": "Background process management is unavailable",
-            },
+            error={"code": "NOT_IMPLEMENTED", "message": "Background processes unavailable"},
         )
 
     async def get_process_output(self, process_id: int) -> ToolResult:
-        """Get output from a running process."""
         return ToolResult(
             success=False,
-            error={"code": "NOT_IMPLEMENTED", "message": "Process monitoring not implemented"}
+            error={"code": "NOT_IMPLEMENTED", "message": "Background processes unavailable"},
         )
-            
+
     async def terminate_process(self, process_id: int) -> ToolResult:
-        """Terminate a process."""
-        try:
-            # For demonstration - we can't properly terminate processes in this context
-            return ToolResult(
-                success=False,
-                error={"code": "NOT_IMPLEMENTED", "message": "Process termination unavailable"}
-            )
-        except Exception as e:
-            return ToolResult(
-                success=False,
-                error={"code": "UNKNOWN_ERROR", "message": str(e)}
-            )
+        return ToolResult(
+            success=False,
+            error={"code": "NOT_IMPLEMENTED", "message": "Background processes unavailable"},
+        )
