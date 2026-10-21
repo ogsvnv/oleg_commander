@@ -23,7 +23,7 @@ class SecureFilesystem:
     """Operate on paths beneath allowlisted roots without following symlinks."""
 
     def __init__(self, roots: list[Path], max_bytes: int):
-        self.roots = sorted((Path(root).resolve() for root in roots), key=lambda p: -len(p.parts))
+        self.roots = sorted((Path(root).absolute() for root in roots), key=lambda p: -len(p.parts))
         self.max_bytes = max_bytes
 
     def _locate(self, path: str) -> tuple[Path, tuple[str, ...], Path]:
@@ -38,10 +38,31 @@ class SecureFilesystem:
                 return root, absolute.relative_to(root).parts, absolute
         raise PermissionError("Path outside configured directories")
 
+    @staticmethod
+    def _open_root(root: Path) -> int:
+        """Open each ancestor of an approved root without following symlinks.
+
+        Opening only the final root with O_NOFOLLOW is insufficient: a
+        concurrently replaced ancestor may otherwise redirect to an
+        unapproved subtree. Each component is resolved under an open fd.
+        """
+        if not root.is_absolute():
+            raise PermissionError("Approved root must be absolute")
+        fd = os.open("/", _DIRECTORY)
+        try:
+            for component in root.parts[1:]:
+                next_fd = os.open(component, _DIRECTORY, dir_fd=fd)
+                os.close(fd)
+                fd = next_fd
+            return fd
+        except BaseException:
+            os.close(fd)
+            raise
+
     @contextmanager
     def directory_fd(self, path: str) -> Iterator[tuple[int, Path]]:
         root, parts, absolute = self._locate(path)
-        fd = os.open(root, _DIRECTORY)
+        fd = self._open_root(root)
         try:
             for part in parts:
                 child = os.open(part, _DIRECTORY, dir_fd=fd)
@@ -56,7 +77,7 @@ class SecureFilesystem:
         root, parts, absolute = self._locate(path)
         if not parts:
             raise PermissionError("Cannot modify an allowlist root")
-        fd = os.open(root, _DIRECTORY)
+        fd = self._open_root(root)
         try:
             for part in parts[:-1]:
                 child = os.open(part, _DIRECTORY, dir_fd=fd)
