@@ -6,6 +6,7 @@ from functools import wraps
 from typing import Optional
 from mcp.server import MCPServer
 from .config import Config
+from .services.https_transport import run_https
 from .security import SecurityManager
 from .tools.filesystem import FilesystemTool
 from .tools.terminal import TerminalTool
@@ -38,6 +39,8 @@ class OlegCommanderServer:
 
         if self.config.server.transport == "stdio":
             await self.server.run_stdio_async()
+        elif self.config.server.transport == "https":
+            await run_https(self.server, self.config)
         elif self.config.server.transport in ("http", "streamable-http"):
             # Remote exposure is disabled until authentication is implemented.
             if self.config.server.host not in ("127.0.0.1", "::1", "localhost"):
