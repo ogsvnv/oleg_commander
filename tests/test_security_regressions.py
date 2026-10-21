@@ -88,11 +88,15 @@ def test_empty_ssh_allowlist_denies_every_host():
     assert not make_security().is_ssh_host_allowed("park")
 
 
-def test_ssh_stub_returns_failure():
+def test_ssh_network_failure_is_reported(monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise OSError("SSH unavailable in test")
+
+    monkeypatch.setattr("oleg_commander.tools.ssh.asyncssh.connect", unavailable)
     security = make_security(allowed_ssh_hosts=["park"])
     result = asyncio.run(SSHTool(security).ssh_execute("park", "uname", []))
     assert result.success is False
-    assert result.error["code"] == "NOT_IMPLEMENTED"
+    assert result.error["code"] == "SSH_ERROR"
 
 
 def test_terminal_denies_arbitrary_command_without_approval():
