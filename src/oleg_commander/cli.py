@@ -1,39 +1,45 @@
-"""CLI for Oleg Commander."""
+"""Command-line interface for the Oleg Commander MCP service."""
+
+import argparse
 import asyncio
 import sys
-from pathlib import Path
+
 from .config import Config
 from .server import OlegCommanderServer
 
-def main():
-    """Main CLI entry point."""
-    if len(sys.argv) < 2:
-        print("Usage: oleg-commander [start|status|doctor|config|tools|logs|approvals|approve|reject]")
-        sys.exit(1)
-    
-    command = sys.argv[1]
-    
-    if command == "start":
-        # Start the server
+
+def main() -> None:
+    """Run the MCP server or a local diagnostic."""
+    parser = argparse.ArgumentParser(prog="oleg-commander")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    start = subparsers.add_parser("start", help="Run the MCP server")
+    start.add_argument(
+        "--transport",
+        choices=("stdio", "http", "streamable-http"),
+        help="Override the configured MCP transport",
+    )
+    subparsers.add_parser("doctor", help="Show installed runtime settings")
+    subparsers.add_parser("status", help="Show implementation status")
+
+    args = parser.parse_args()
+    if args.command == "start":
         config = Config()
-        server = OlegCommanderServer(config)
+        if args.transport:
+            config.server.transport = args.transport
         try:
-            asyncio.run(server.start())
+            asyncio.run(OlegCommanderServer(config).start())
         except KeyboardInterrupt:
             pass
-    
-    elif command == "status":
-        print("Oleg Commander status: Not implemented yet")
-        
-    elif command == "doctor":
-        print("Checking Oleg Commander setup...")
-        print("Python version: ", sys.version)
-        print("Config file: Present")
-        print("Dependencies: Not verified (no pip install)")
-        
+    elif args.command == "doctor":
+        config = Config()
+        print(f"Python: {sys.version.split()[0]}")
+        print(f"MCP transport: {config.server.transport}")
+        print(f"Read-only: {config.security.read_only}")
+        print(f"Approval required: {config.security.require_approval}")
     else:
-        print(f"Unknown command: {command}")
-        sys.exit(1)
+        print("Implemented: local MCP server, filesystem, Git, limited terminal")
+        print("Not implemented: SSH execution, Docker, systemd, process control")
+
 
 if __name__ == "__main__":
     main()
