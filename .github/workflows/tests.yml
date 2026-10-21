@@ -24,6 +24,10 @@ jobs:
           src/oleg_commander/tools/docker.py
           src/oleg_commander/tools/processes.py
           src/oleg_commander/services/command_service.py
+          src/oleg_commander/services/secure_filesystem.py
+          src/oleg_commander/tools/filesystem.py
+          tests/test_filesystem_boundaries.py
+          tests/test_mcp_transport.py
           src/oleg_commander/tool_result.py
           src/oleg_commander/audit.py
           src/oleg_commander/services/approval_service.py
