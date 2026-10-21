@@ -248,5 +248,5 @@ def test_yaml_config_loading_and_missing_explicit_file(tmp_path, monkeypatch):
 def test_invalid_yaml_is_rejected(tmp_path):
     yaml_file = tmp_path / "config.yaml"
     yaml_file.write_text("[bad, sequence]", encoding="utf-8")
-    with pytest.raises(ValueError, match="mapping"):
+    with pytest.raises(TypeError, match="mapping"):
         Config.load(str(yaml_file))
