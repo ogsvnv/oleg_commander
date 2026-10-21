@@ -1,0 +1,25 @@
+server:
+  name: Oleg Commander
+  transport: stdio
+  host: 127.0.0.1
+  port: 8765
+
+security:
+  read_only: true
+  require_approval: true
+
+  allowed_directories:
+    - /home/ogsvnv/Develop
+
+  allowed_ssh_hosts:
+    - zalman1
+    - wob
+    - gamma-1
+
+execution:
+  timeout: 30
+  max_output_bytes: 1048576
+
+logging:
+  level: INFO
+  audit_enabled: true

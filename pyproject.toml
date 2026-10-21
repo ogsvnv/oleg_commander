@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oleg-commander"
+version = "0.1.0"
+description = "MCP Server for remote system administration"
+authors = [
+    { name = "Oleg Commander Team" },
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "mcp >= 2.0.0",
+    "asyncssh >= 2.14.0",
+    "httpx >= 0.25.0",
+    "pydantic >= 2.5.0",
+    "pytest >= 7.0.0",
+    "pytest-asyncio >= 0.21.0",
+    "ruff >= 0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff >= 0.3.0",
+]
+
+[project.scripts]
+oleg-commander = "src.oleg_commander.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
