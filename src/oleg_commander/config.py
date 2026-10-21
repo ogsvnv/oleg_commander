@@ -1,47 +1,76 @@
-"""Configuration management for Oleg Commander."""
+"""Validated application settings and optional YAML configuration."""
+
 import os
 from pathlib import Path
-from typing import List, Optional
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
-class ServerConfig(BaseSettings):
-    """Server configuration settings."""
-    
-    name: str = Field(default="Oleg Commander")
-    transport: str = Field(default="stdio")
-    host: str = Field(default="127.0.0.1")
-    port: int = Field(default=8765)
+import yaml
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class SecurityConfig(BaseSettings):
-    """Security configuration settings."""
-    
-    read_only: bool = Field(default=True)
-    require_approval: bool = Field(default=True)
-    allowed_directories: List[str] = Field(default_factory=list)
-    allowed_ssh_hosts: List[str] = Field(default_factory=list)
 
-class ExecutionConfig(BaseSettings):
-    """Execution configuration settings."""
-    
-    timeout: int = Field(default=30)
-    max_output_bytes: int = Field(default=1048576)  # 1MB
+class ServerConfig(BaseModel):
+    """MCP transport settings."""
 
-class LoggingConfig(BaseSettings):
-    """Logging configuration settings."""
-    
-    level: str = Field(default="INFO")
-    audit_enabled: bool = Field(default=True)
+    name: str = "Oleg Commander"
+    transport: str = "stdio"
+    host: str = "127.0.0.1"
+    port: int = Field(default=8765, ge=1, le=65535)
+
+
+class SecurityConfig(BaseModel):
+    """Default-deny settings for local and remote operations."""
+
+    read_only: bool = True
+    require_approval: bool = True
+    allowed_directories: list[str] = Field(default_factory=list)
+    allowed_ssh_hosts: list[str] = Field(default_factory=list)
+    allowed_ssh_directories: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class ExecutionConfig(BaseModel):
+    """Bounds shared by SSH commands and file transfers."""
+
+    timeout: int = Field(default=30, ge=1, le=600)
+    max_output_bytes: int = Field(default=1048576, ge=1, le=10485760)
+
+
+class LoggingConfig(BaseModel):
+    """Audit-related settings (audit integration is still in progress)."""
+
+    level: str = "INFO"
+    audit_enabled: bool = True
+
 
 class Config(BaseSettings):
-    """Main application configuration."""
-    
+    """Settings; explicitly supplied YAML takes precedence over environment."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+    )
+
     server: ServerConfig = Field(default_factory=ServerConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+
+    @classmethod
+    def load(cls, path: str | None = None) -> "Config":
+        """Load config.yaml or OLEG_COMMANDER_CONFIG; validate every section.
+
+        A missing default config.yaml is fine. A missing explicitly selected
+        config must fail to avoid silently losing security restrictions.
+        """
+        selected = path or os.getenv("OLEG_COMMANDER_CONFIG", "config.yaml")
+        file_path = Path(selected).expanduser()
+        if not file_path.exists():
+            if path is not None or os.getenv("OLEG_COMMANDER_CONFIG"):
+                raise FileNotFoundError(f"Config file not found: {file_path}")
+            return cls()
+        with file_path.open(encoding="utf-8") as stream:
+            data = yaml.safe_load(stream) or {}
+        if not isinstance(data, dict):
+            raise TypeError("Config YAML must contain a mapping")
+        return cls(**data)

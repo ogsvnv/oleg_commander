@@ -15,6 +15,15 @@ security:
     - zalman1
     - wob
     - gamma-1
+    - park
+
+  # Only these remote directories may be accessed via SFTP.
+  # Adjust for each SSH host. Empty means remote files are inaccessible.
+  allowed_ssh_directories:
+    park:
+      - /home/ogsvnv/Develop
+    wob:
+      - /home/ogsvnv/Develop
 
 execution:
   timeout: 30

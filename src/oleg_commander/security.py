@@ -2,7 +2,7 @@
 import os
 import pathlib
 from typing import List, Optional
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from .config import Config
 
 class SecurityManager:
@@ -77,6 +77,32 @@ class SecurityManager:
         
         return hostname in self._allowed_ssh_hosts
     
+    def is_ssh_path_allowed(self, hostname: str, path: str) -> bool:
+        """Check a remote absolute path against an explicit per-host allowlist.
+
+        Call this for both the supplied path and the result of SFTP realpath()
+        so simple traversal and remote symlink escapes are both denied.
+        """
+        if not self.is_ssh_host_allowed(hostname) or not path:
+            return False
+
+        remote = PurePosixPath(path)
+        if (
+            not remote.is_absolute()
+            or ".." in remote.parts
+            or "\\x00" in path
+        ):
+            return False
+
+        for allowed in self.config.security.allowed_ssh_directories.get(
+            hostname, []
+        ):
+            root = PurePosixPath(allowed)
+            if root.is_absolute() and ".." not in root.parts:
+                if remote.is_relative_to(root):
+                    return True
+        return False
+
     def is_command_allowed(self, command: str) -> bool:
         """Check if a command is allowed."""
         # This will be expanded with actual command filtering logic

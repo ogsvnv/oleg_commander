@@ -123,7 +123,7 @@ class OlegCommanderServer:
 
 async def main():
     """Run the MCP server until disconnected or interrupted."""
-    await OlegCommanderServer(Config()).start()
+    await OlegCommanderServer(Config.load()).start()
 
 
 if __name__ == "__main__":

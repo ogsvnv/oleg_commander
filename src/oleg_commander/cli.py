@@ -23,7 +23,7 @@ def main() -> None:
 
     args = parser.parse_args()
     if args.command == "start":
-        config = Config()
+        config = Config.load()
         if args.transport:
             config.server.transport = args.transport
         try:
@@ -31,7 +31,7 @@ def main() -> None:
         except KeyboardInterrupt:
             pass
     elif args.command == "doctor":
-        config = Config()
+        config = Config.load()
         print(f"Python: {sys.version.split()[0]}")
         print(f"MCP transport: {config.server.transport}")
         print(f"Read-only: {config.security.read_only}")

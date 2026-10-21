@@ -41,3 +41,5 @@ logs/
 
 # Environment files
 .env
+# Local MCP configuration
+config.yaml
