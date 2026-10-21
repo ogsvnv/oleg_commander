@@ -14,8 +14,8 @@ class SystemdTool:
         try:
             # In a real implementation we would use systemctl
             return ToolResult(
-                success=True,
-                data={"message": f"Systemd status for {service} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "systemd operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -28,8 +28,8 @@ class SystemdTool:
         try:
             # In a real implementation we would use journalctl
             return ToolResult(
-                success=True,
-                data={"message": f"Systemd logs for {service} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "systemd operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
@@ -40,7 +40,7 @@ class SystemdTool:
     async def systemd_restart(self, service: str) -> ToolResult:
         """Restart a systemd service."""
         try:
-            if self.security_manager.config.security.read_only:
+            if not self.security_manager.can_modify():
                 return ToolResult(
                     success=False,
                     error={"code": "READ_ONLY", "message": "Server is in read-only mode"}
@@ -48,8 +48,8 @@ class SystemdTool:
                 
             # In a real implementation we would use systemctl
             return ToolResult(
-                success=True,
-                data={"message": f"Systemd restart for {service} not implemented"}
+                success=False,
+                error={"code": "NOT_IMPLEMENTED", "message": "systemd operation not implemented"},
             )
         except Exception as e:
             return ToolResult(
