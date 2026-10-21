@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from typing import Dict, List
 
 import yaml
 from pydantic import BaseModel, Field
@@ -23,9 +22,9 @@ class SecurityConfig(BaseModel):
 
     read_only: bool = True
     require_approval: bool = True
-    allowed_directories: List[str] = Field(default_factory=list)
-    allowed_ssh_hosts: List[str] = Field(default_factory=list)
-    allowed_ssh_directories: Dict[str, List[str]] = Field(default_factory=dict)
+    allowed_directories: list[str] = Field(default_factory=list)
+    allowed_ssh_hosts: list[str] = Field(default_factory=list)
+    allowed_ssh_directories: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class ExecutionConfig(BaseModel):
@@ -73,5 +72,5 @@ class Config(BaseSettings):
         with file_path.open(encoding="utf-8") as stream:
             data = yaml.safe_load(stream) or {}
         if not isinstance(data, dict):
-            raise ValueError("Config YAML must contain a mapping")
+            raise TypeError("Config YAML must contain a mapping")
         return cls(**data)
